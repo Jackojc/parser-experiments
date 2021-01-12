@@ -82,14 +82,19 @@ namespace rng {
 
 
 namespace gexpr {
-	void generate_literal(rng::Random&, std::string&);
-	void generate_expr(rng::Random&, std::string&, const int = 100, int = 0);
-	void generate_unary_expr(rng::Random&, std::string&, const int = 100, int = 0);
-	void generate_binary_expr(rng::Random&, std::string&, const int = 100, int = 0);
-	void generate_paren_expr(rng::Random&, std::string&, const int = 100, int = 0);
+	inline void generate_literal(rng::Random&, std::string&);
+	inline void generate_expr(rng::Random&, std::string&, const int = 100, int = 0);
+	inline void generate_unary_expr(rng::Random&, std::string&, const int = 100, int = 0);
+	inline void generate_binary_expr(rng::Random&, std::string&, const int = 100, int = 0);
+	inline void generate_paren_expr(rng::Random&, std::string&, const int = 100, int = 0);
 
 
-	void generate_expr(rng::Random& rng, std::string& str, const int max_depth, int depth) {
+	inline void generate_expr(rng::Random& rng, std::string& str, const int max_depth, int depth) {
+		if (str.size() >= 1'000'000'000) {
+			std::cout << str;
+			str.clear();
+		}
+
 		switch (rng::random_next(rng) % 4) {
 			case 0: generate_unary_expr(rng, str, max_depth, depth + 1); break;
 			case 1: generate_binary_expr(rng, str, max_depth, depth + 1); break;
@@ -98,11 +103,11 @@ namespace gexpr {
 		}
 	}
 
-	void generate_literal(rng::Random& rng, std::string& str) {
+	inline void generate_literal(rng::Random& rng, std::string& str) {
 		str += std::to_string(rng::random_range(rng, 1, 100));
 	}
 
-	void generate_binary_expr(rng::Random& rng, std::string& str, const int max_depth, int depth) {
+	inline void generate_binary_expr(rng::Random& rng, std::string& str, const int max_depth, int depth) {
 		constexpr auto ops = std::array {
 			" + ", " - ", " * ", " / ", " % ", " ** "
 		};
@@ -122,7 +127,7 @@ namespace gexpr {
 		}
 	}
 
-	void generate_unary_expr(rng::Random& rng, std::string& str, const int max_depth, int depth) {
+	inline void generate_unary_expr(rng::Random& rng, std::string& str, const int max_depth, int depth) {
 		constexpr auto ops = std::array {
 			"+", "-"
 		};
@@ -140,19 +145,27 @@ namespace gexpr {
 		}
 	}
 
-	void generate_paren_expr(rng::Random& rng, std::string& str, const int max_depth, int depth) {
+	inline void generate_paren_expr(rng::Random& rng, std::string& str, const int max_depth, int depth) {
 		str += "(";
 		generate_binary_expr(rng, str, max_depth, depth + 1);
 		str += ")";
 	}
 }
 
-int main() {
+int main(int argc, const char* argv[]) {
+	if (argc != 2) {
+		std::cerr << "usage: genexpr <n>\n";
+		return -1;
+	}
+
 	rng::Random rng = rng::random_create(time(nullptr));
 
 	std::string out;
-	gexpr::generate_expr(rng, out, 40);
-	std::cout << out << '\n';
+	out.reserve(1'000'000'000);
+	gexpr::generate_expr(rng, out, std::stoi(argv[1]));
 
+	if (out.size() > 0) {
+		std::cout << out << '\n';
+	}
 	return 0;
 }
