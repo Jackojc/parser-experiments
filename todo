@@ -1,0 +1,5 @@
+ - add postfix operators
+ - cmdline parsing with option to output sexpr
+ - intrinsic functions: sin, cos, tan, etc.
+ - variables
+ - functions
