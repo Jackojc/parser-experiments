@@ -52,7 +52,7 @@ namespace calc {
 
 
 	inline util::Token next_token(const char*& ptr) {
-		util::Token tok{{ptr, nullptr}, TOKEN_NONE};
+		util::Token tok{{ptr, 1}, TOKEN_NONE};
 
 		auto& [view, type] = tok;
 		auto& [vbegin, vend] = view;
@@ -115,7 +115,7 @@ namespace calc {
 			std::exit(-1);
 		}
 
-		vend = ptr;
+		vend = ptr - vbegin;
 
 		return tok;
 	}
@@ -139,7 +139,11 @@ namespace calc {
 			op(op_), node(node_) {}
 	};
 
-	using Literal = double;
+	// using Literal = double;
+
+	struct Literal {
+		util::View view;
+	};
 
 	using AST = util::AST<BinaryOp, UnaryOp, Literal>;
 	using Lexer = util::Lexer<calc::next_token>;
@@ -263,12 +267,12 @@ namespace calc {
 				break;
 
 			case TOKEN_LITERAL: {
-				Literal num = 0;
+				// Literal num = 0;
 
-				for (auto [it, end] = tok.view; it != end; it++)
-					num = (num * 10.f) + (*it - '0');
+				// for (auto [it, end] = tok.view; it != tok.view.begin + end; it++)
+				// 	num = (num * 10.f) + (*it - '0');
 
-				lhs = tree.add<Literal>(num);
+				lhs = tree.add<Literal>(tok.view);
 
 				break;
 			}
@@ -311,9 +315,9 @@ namespace calc {
 
 namespace calc {
 	template <typename T>
-	Literal eval(const T& variant, const calc::AST& tree) {
+	double eval(const T& variant, const calc::AST& tree) {
 		return util::visit(variant,
-			[&] (const BinaryOp& bop) -> Literal {
+			[&] (const BinaryOp& bop) {
 				const auto& [op, lhs_node, rhs_node] = bop;
 
 				auto lhs = eval(tree[lhs_node], tree);
@@ -337,7 +341,7 @@ namespace calc {
 				return 0;
 			},
 
-			[&] (const UnaryOp& uop) -> Literal {
+			[&] (const UnaryOp& uop) {
 				const auto& [op, node] = uop;
 
 				switch (op.type) {
@@ -350,7 +354,7 @@ namespace calc {
 				return 0;
 			},
 
-			[&] (const Literal& x) { return x; }
+			[&] (const Literal& x) { return std::stod(x.view.str()); }
 		);
 	};
 }
@@ -358,24 +362,39 @@ namespace calc {
 
 namespace calc {
 	template <typename T>
-	std::string print(const T& variant, const calc::AST& tree) {
+	void print(const T& variant, const calc::AST& tree, std::string& str) {
 		return util::visit(variant,
 			[&] (const BinaryOp& bop) {
 				const auto& [op, lhs_node, rhs_node] = bop;
 
-				auto lhs = print(tree[lhs_node], tree);
-				auto rhs = print(tree[rhs_node], tree);
+				str += "( " + op.str() + " ";
+					print(tree[lhs_node], tree, str);
+				str += " ";
+					print(tree[rhs_node], tree, str);
+				str += " )";
 
-				return tinge::strcat("( ", op, " ", lhs, " ", rhs, " )");
+				// return tinge::strcat("( ", op, " ", lhs, " ", rhs, " )");
 			},
 
 			[&] (const UnaryOp& uop) {
 				const auto& [op, node] = uop;
-				return tinge::strcat("( ", op, " ", print(tree[node], tree), " )");
+
+				str += "( " + op.str() + " ";
+					print(tree[node], tree, str);
+				str += " )";
+
+				// return tinge::strcat("( ", op, " ", print(tree[node], tree), " )");
 			},
 
-			[&] (const Literal& x) { return std::to_string(x); }
+			[&] (const Literal& x) { str += x.view.str(); }
 		);
+	}
+
+
+	std::string print(util::Node id, const calc::AST& tree) {
+		std::string str;
+		print(tree[id], tree, str);
+		return str;
 	}
 }
 
@@ -437,8 +456,8 @@ int main(int argc, const char* argv[]) {
 		auto roots = calc::parse(lex, tree);
 
 		for (util::Node root: roots) {
-			tinge::println(calc::print(tree[root], tree));
-			tinge::successln(calc::eval(tree[root], tree));
+			std::cout << calc::print(root, tree) << '\n';
+			// tinge::successln(calc::eval(tree[root], tree));
 		}
 
 	#endif

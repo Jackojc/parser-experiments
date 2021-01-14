@@ -58,7 +58,7 @@ namespace graph {
 			std::exit(-1);
 		}
 
-		vend = ptr;
+		vend = ptr - vbegin;
 
 		return tok;
 	}

@@ -31,17 +31,26 @@ namespace util {
 
 namespace util {
 	struct View {
-		const char *begin = nullptr, *end = nullptr;
+		const char *begin = nullptr;
+		int length = 0;
 
 		constexpr View() {}
 
 		constexpr View(const char* const begin_, const char* const end_):
-			begin(begin_), end(end_) {}
+			begin(begin_), length(end_ - begin_) {}
+
+		constexpr View(const char* const begin_, int length_):
+			begin(begin_), length(length_) {}
+
+
+		std::string str() const {
+			return std::string{begin, static_cast<std::string::size_type>(length)};
+		}
 	};
 
 	inline std::ostream& operator<<(std::ostream& os, const View& v) {
-		const auto& [vbegin, vend] = v;
-		os.write(vbegin, vend - vbegin);
+		const auto& [vbegin, vlength] = v;
+		os.write(vbegin, vlength);
 		return os;
 	}
 }
@@ -56,6 +65,11 @@ namespace util {
 
 		constexpr Token(View view_, uint8_t type_):
 			view(view_), type(type_) {}
+
+
+		std::string str() const {
+			return view.str();
+		}
 	};
 
 	constexpr bool operator==(const Token& t, const uint8_t type) {
@@ -83,9 +97,24 @@ namespace util {
 		return c >= lower and c <= upper;
 	}
 
-
 	constexpr bool is_digit(char c) {
 		return in_range(c, '0', '9');
+	}
+
+	constexpr bool is_lower(char c) {
+		return in_range(c, 'a', 'z');
+	}
+
+	constexpr bool is_upper(char c) {
+		return in_range(c, 'A', 'Z');
+	}
+
+	constexpr bool is_alpha(char c) {
+		return is_lower(c) or is_upper(c);
+	}
+
+	constexpr bool is_alphanumeric(char c) {
+		return is_lower(c) or is_upper(c) or is_digit(c);
 	}
 
 	constexpr bool is_whitespace(char c) {
@@ -158,7 +187,7 @@ namespace util {
 	template <typename... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 	template <typename V, typename... Ts>
-	constexpr decltype(auto) visit(V& variant, Ts&&... args) {
+	constexpr decltype(auto) visit(V&& variant, Ts&&... args) {
 		return std::visit(util::overloaded{
 			std::forward<Ts>(args)...
 		}, variant);
